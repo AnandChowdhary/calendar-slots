@@ -1,4 +1,4 @@
-# 🏷️ Calendar Slots
+# 🗓️ Calendar Slots
 
 Opinionated starter for server-side Node.js libraries, with [TypeScript](https://github.com/microsoft/TypeScript), tests with [Jest](https://github.com/facebook/jest), automated releases with [GitHub Actions](https://github.com/features/actions) and [Semantic Release](https://github.com/semantic-release/semantic-release), and coverage reporting from [Travis CI](https://travis-ci.org) to [Coveralls](https://coveralls.io).
 
@@ -24,12 +24,24 @@ Install the package from [npm](https://www.npmjs.com/package/calendar-slots):
 npm install calendar-slots
 ```
 
-Import and use;
+Import and use:
 
 ```ts
-import { nodeTs } from "@anandchowdhary/node-ts";
+import { findSlots } from "calendar-slots";
 
-nodeTs();
+// Authenticate Google Calendar API client
+const oauth2Client = new google.auth.OAuth2();
+const calendar = google.calendar("v1");
+
+const slots = await findSlots({
+  calendar,
+  user: {
+    clientId: "",
+    clientSecret: "",
+  },
+});
+
+console.log(slots); // Slot[]
 ```
 
 ## 👩‍💻 Development
