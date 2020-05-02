@@ -1,7 +1,7 @@
-import { nodeTs } from "./index";
+import { getSlots } from "./index";
 
 describe("node.ts", () => {
-  it("works", () => {
-    expect(nodeTs()).toBeTruthy();
+  it("works", async () => {
+    expect(await getSlots()).toBeTruthy();
   });
 });
