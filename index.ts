@@ -6,6 +6,7 @@ import {
   UserRefreshClient,
 } from "google-auth-library";
 import { config } from "dotenv";
+import moment from "moment";
 config();
 
 const oauth2Client = new google.auth.OAuth2(
@@ -27,8 +28,8 @@ export interface GetEventsParams {
     accessToken: string;
     refreshToken: string;
   };
-  from: Date;
-  to: Date;
+  from: moment.MomentInput;
+  to: moment.MomentInput;
   calendarId?: string;
   auth?: string | OAuth2Client | JWT | Compute | UserRefreshClient;
 }
@@ -55,8 +56,8 @@ export const getEventsFromSingleCalendar = async ({
   return (
     (
       await calendar.events.list({
-        timeMin: from?.toISOString(),
-        timeMax: to?.toISOString(),
+        timeMin: from ? moment(from).toISOString() : undefined,
+        timeMax: to ? moment(to).toISOString() : undefined,
         auth: auth ?? oauth2Client,
         calendarId: calendarId ?? "primary",
         maxResults: 3,
@@ -104,15 +105,16 @@ export const getSlots = async (
 
   // Find all slots
   const allPotentialSlots: Slot[] = [];
-  const differenceInMinutes = Math.abs(
-    (params.to.getTime() - params.from.getTime()) / 60000
-  );
+  const differenceInMinutes = moment(params.to).diff(params.from, "minutes");
   let endDate = params.from;
-  while (endDate.getTime() < params.to.getTime()) {
+  while (moment(endDate).isBefore(params.to)) {
     const start = endDate;
-    const end = new Date(start.getTime() + slotDuration * 60000);
-    if (endDate.getTime() < params.to.getTime())
-      allPotentialSlots.push({ start, end });
+    const end = moment(start).add(slotDuration, "minutes");
+    if (end.isBefore(params.to))
+      allPotentialSlots.push({
+        start: moment(start).toDate(),
+        end: moment(end).toDate(),
+      });
     endDate = end;
   }
   return console.log("Slots are", allPotentialSlots.length);
