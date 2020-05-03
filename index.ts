@@ -25,12 +25,12 @@ type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
 /*
  * Split an array in equal chunks
- * @source https://stackoverflow.com/a/40682136/1656944
+ * @source https://stackoverflow.com/a/51514813/1656944
  */
-const chunkArrayInGroups = <T = any>(arr: T[], size: number) => {
+const chunkArrayInGroups = <T = any>(arr: T[], parts: number) => {
   const arrayParts: T[][] = [];
-  for (let i = 0; i < arr.length; i += size)
-    arrayParts.push(arr.slice(i, i + size));
+  for (let i = parts; i > 0; i--)
+    arrayParts.push(arr.splice(0, Math.ceil(arr.length / i)));
   return arrayParts;
 };
 
@@ -40,8 +40,11 @@ const chunkArrayInGroups = <T = any>(arr: T[], size: number) => {
 const randomItemFromArray = <T = any>(arr: T[]) =>
   arr[Math.floor(Math.random() * arr.length)];
 
+/*
+ * Live logging for debugging
+ */
 const log = (params: any, ...args: any[]) => {
-  if (params.shouldLog) {
+  if (params.log) {
     if (typeof params.logger === "function") params.logger(...args);
     else console.log(args);
   }
@@ -91,7 +94,7 @@ export const getEventsFromSingleCalendar = async ({
 };
 
 /*
- * Get a list of events from all calendars
+ * Get a list of user's events from all calendars
  */
 export const getEventsFromAllCalendars = async (
   params: Omit<GetEventsParams, "calendarId">
@@ -117,11 +120,15 @@ export const getEventsFromAllCalendars = async (
   return allEvents;
 };
 
+/*
+ * List all free slots for a user
+ */
 export const getSlots = async (
   params: GetEventsParams & {
     log?: boolean;
     slotDuration?: number;
     slots?: number;
+    days?: number[];
     daily?: {
       timezone: string;
       from: [number, number?, number?];
@@ -130,13 +137,14 @@ export const getSlots = async (
     slotFilter?: (slot: Slot) => boolean;
     logger?: (...args: any[]) => void;
   }
-) => {
+): Promise<Slot[]> => {
   // Default slot duration is 30 minutes
   const slotDuration = params.slotDuration ?? 30;
+  const daysAllowed = params.days ?? [0, 1, 2, 3, 4, 5, 6];
   delete params.slotDuration;
 
   // Find all slots
-  let allPotentialSlots: Slot[] = [];
+  const allPotentialSlots: Slot[] = [];
   const differenceInMinutes = moment(params.to).diff(params.from, "minutes");
   let endDate = moment(params.from).hours(0).minutes(0).seconds(0);
   while (moment(endDate).isBefore(params.to)) {
@@ -144,6 +152,8 @@ export const getSlots = async (
     const end = moment(start).add(slotDuration, "minutes");
 
     if (
+      daysAllowed.includes(moment(start).day()) &&
+      daysAllowed.includes(end.day()) &&
       start.isAfter(
         moment(params.from)
           .hours(params.daily?.from[0] ?? 0)
@@ -189,20 +199,21 @@ export const getSlots = async (
     endDate = end;
   }
   log(params, `Total potential slots are ${allPotentialSlots.length}`);
+  if (!allPotentialSlots.length) return [];
 
-  let calendarEvents: calendar_v3.Schema$Event[];
-  let timer = new Date().getTime();
-  if (params.calendarId)
-    calendarEvents = await getEventsFromSingleCalendar(params);
-  else calendarEvents = await getEventsFromAllCalendars(params);
-  log(
-    params,
-    `Fetched ${calendarEvents.length} events from ${
-      params.calendarId ?? "all calendars"
-    } in ${(new Date().getTime() - timer) / 1000} seconds`
-  );
+  let calendarEvents: calendar_v3.Schema$Event[] = [];
+  // let timer = new Date().getTime();
+  // if (params.calendarId)
+  //   calendarEvents = await getEventsFromSingleCalendar(params);
+  // else calendarEvents = await getEventsFromAllCalendars(params);
+  // log(
+  //   params,
+  //   `Fetched ${calendarEvents.length} events from ${
+  //     params.calendarId ?? "all calendars"
+  //   } in ${(new Date().getTime() - timer) / 1000} seconds`
+  // );
 
-  allPotentialSlots = allPotentialSlots.filter((slot) => {
+  const recommendedSlots = allPotentialSlots.filter((slot) => {
     let conflict = false;
     calendarEvents.forEach((event) => {
       if (
@@ -217,28 +228,36 @@ export const getSlots = async (
   });
 
   if (params.slots) {
-    const parts = chunkArrayInGroups(allPotentialSlots, params.slots);
+    if (recommendedSlots.length <= params.slots) return recommendedSlots;
+    const parts = chunkArrayInGroups(recommendedSlots, params.slots);
     const randomSlots: Slot[] = [];
     for (let i = 0; i < params.slots; i++)
       randomSlots.push(randomItemFromArray(parts[i]));
     log(params, `Recommending ${randomSlots.length} slots`);
     return randomSlots;
   }
+
+  return recommendedSlots;
 };
 
-const test = async () => {
-  const result = await getSlots({
-    slotDuration: 30,
-    slots: 3,
-    from: new Date(),
-    to: new Date("2020-05-10"),
-    daily: {
-      timezone: "Asia/Kolkata",
-      from: [12],
-      to: [16],
-    },
-  });
-  console.log("RESULT", result);
-};
+// const test = async () => {
+//   const result = await getSlots({
+//     slotDuration: 30,
+//     log: true,
+//     slots: 3,
+//     from: new Date(),
+//     to: new Date("2020-05-10"),
+//     days: [1, 2, 3, 4, 5],
+//     daily: {
+//       timezone: "Asia/Kolkata",
+//       from: [12],
+//       to: [16],
+//     },
+//   });
+//   console.log(
+//     "RESULT",
+//     result.map((i) => i.start.toLocaleString())
+//   );
+// };
 
-test();
+// test();
