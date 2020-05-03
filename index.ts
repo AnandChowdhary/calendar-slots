@@ -27,8 +27,8 @@ export interface GetEventsParams {
     accessToken: string;
     refreshToken: string;
   };
-  from?: Date;
-  to?: Date;
+  from: Date;
+  to: Date;
   calendarId?: string;
   auth?: string | OAuth2Client | JWT | Compute | UserRefreshClient;
 }
@@ -103,6 +103,19 @@ export const getSlots = async (
   delete params.slotDuration;
 
   // Find all slots
+  const allPotentialSlots: Slot[] = [];
+  const differenceInMinutes = Math.abs(
+    (params.to.getTime() - params.from.getTime()) / 60000
+  );
+  let endDate = params.from;
+  while (endDate.getTime() < params.to.getTime()) {
+    const start = endDate;
+    const end = new Date(start.getTime() + slotDuration * 60000);
+    if (endDate.getTime() < params.to.getTime())
+      allPotentialSlots.push({ start, end });
+    endDate = end;
+  }
+  return console.log("Slots are", allPotentialSlots.length);
 
   let events: calendar_v3.Schema$Event[];
   if (params.calendarId) {
