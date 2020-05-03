@@ -7,7 +7,7 @@ Opinionated starter for server-side Node.js libraries, with [TypeScript](https:/
 [![Dependencies](https://img.shields.io/librariesio/release/npm/calendar-slots)](https://libraries.io/npm/calendar-slots)
 [![License](https://img.shields.io/npm/l/calendar-slots)](https://github.com/AnandChowdhary/calendar-slots/blob/master/LICENSE)
 [![Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/npm/calendar-slots.svg)](https://snyk.io/test/npm/calendar-slots)
-[![Based on Node.ts](https://img.shields.io/badge/based%20on-node.ts-brightgreen)](https://github.com/AnandChowdhary/calendar-slots)
+[![Based on Node.ts](https://img.shields.io/badge/based%20on-node.ts-brightgreen)](https://github.com/AnandChowdhary/node.ts)
 [![npm type definitions](https://img.shields.io/npm/types/calendar-slots.svg)](https://unpkg.com/browse/calendar-slots/dist/index.d.ts)
 [![npm package](https://img.shields.io/npm/v/calendar-slots.svg)](https://www.npmjs.com/package/calendar-slots)
 [![npm downloads](https://img.shields.io/npm/dw/calendar-slots)](https://www.npmjs.com/package/calendar-slots)
