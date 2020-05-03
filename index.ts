@@ -6,7 +6,7 @@ import {
   UserRefreshClient,
 } from "google-auth-library";
 import { config } from "dotenv";
-import moment from "moment";
+import moment from "moment-timezone";
 config();
 
 const oauth2Client = new google.auth.OAuth2(
@@ -22,6 +22,22 @@ const calendar = google.calendar("v3");
  * @source https://stackoverflow.com/a/51804844/1656944
  */
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+
+/*
+ * Split an array in equal chunks
+ * @source https://stackoverflow.com/a/40682136/1656944
+ */
+const chunkArrayInGroups = <T = any>(arr: T[], size: number) => {
+  const arrayParts: T[][] = [];
+  for (let i = 0; i < arr.length; i += size)
+    arrayParts.push(arr.slice(i, i + size));
+  return arrayParts;
+};
+/*
+ * Get a random element from this array
+ */
+const randomItemFromArray = <T = any>(arr: T[]) =>
+  arr[Math.floor(Math.random() * arr.length)];
 
 export interface GetEventsParams {
   user?: {
@@ -96,6 +112,12 @@ export const getEventsFromAllCalendars = async (
 export const getSlots = async (
   params: GetEventsParams & {
     slotDuration?: number;
+    slots?: number;
+    daily?: {
+      timezone: string;
+      from: [number, number?, number?];
+      to: [number, number?, number?];
+    };
     slotFilter?: (slot: Slot) => boolean;
   }
 ) => {
@@ -106,33 +128,84 @@ export const getSlots = async (
   // Find all slots
   const allPotentialSlots: Slot[] = [];
   const differenceInMinutes = moment(params.to).diff(params.from, "minutes");
-  let endDate = params.from;
+  let endDate = moment(params.from).hours(0).minutes(0).seconds(0);
   while (moment(endDate).isBefore(params.to)) {
     const start = endDate;
     const end = moment(start).add(slotDuration, "minutes");
-    if (end.isBefore(params.to))
-      allPotentialSlots.push({
-        start: moment(start).toDate(),
-        end: moment(end).toDate(),
-      });
+
+    if (
+      start.isAfter(
+        moment(params.from)
+          .hours(params.daily?.from[0] ?? 0)
+          .minutes(params.daily?.from[1] ?? 0)
+          .seconds(params.daily?.from[2] ?? 0)
+      ) &&
+      end.isBefore(
+        moment(params.to)
+          .hours(params.daily?.to[0] ?? 0)
+          .minutes(params.daily?.to[1] ?? 0)
+          .seconds(params.daily?.to[2] ?? 0)
+      )
+    ) {
+      const startTime = moment(start);
+      const endTime = moment(end);
+
+      let dailyConditionsMet = true;
+      if (params.daily)
+        if (
+          moment.tz(startTime, params.daily.timezone).isBefore(
+            moment
+              .tz(startTime, params.daily.timezone)
+              .hours(params.daily.from[0])
+              .minutes(params.daily.from[1] ?? 0)
+              .seconds(params.daily.from[2] ?? 0)
+          ) ||
+          moment.tz(endTime, params.daily.timezone).isAfter(
+            moment
+              .tz(endTime, params.daily.timezone)
+              .hours(params.daily.to[0])
+              .minutes(params.daily.to[1] ?? 0)
+              .seconds(params.daily.to[2] ?? 0)
+          )
+        )
+          dailyConditionsMet = false;
+
+      if (dailyConditionsMet)
+        allPotentialSlots.push({
+          start: startTime.toDate(),
+          end: endTime.toDate(),
+        });
+    }
     endDate = end;
   }
-  return console.log("Slots are", allPotentialSlots.length);
 
-  let events: calendar_v3.Schema$Event[];
+  let calendarEvents: calendar_v3.Schema$Event[];
   if (params.calendarId) {
-    events = await getEventsFromSingleCalendar(params);
+    calendarEvents = await getEventsFromSingleCalendar(params);
   } else {
-    events = await getEventsFromAllCalendars(params);
+    calendarEvents = await getEventsFromAllCalendars(params);
   }
-  console.log("FINDING SLOTS FROM EVENTS", events.length);
+
+  if (params.slots) {
+    const parts = chunkArrayInGroups(allPotentialSlots, params.slots);
+    const elements: Slot[] = [];
+    for (let i = 0; i < params.slots; i++)
+      elements.push(randomItemFromArray(parts[i]));
+    return elements;
+  }
 };
 
 const test = async () => {
   const result = await getSlots({
     slotDuration: 30,
+    slots: 3,
     from: new Date(),
     to: new Date("2020-05-10"),
+    daily: {
+      timezone: "Asia/Kolkata",
+      from: [12],
+      to: [19, 59, 59],
+    },
   });
   console.log("RESULT", result);
 };
