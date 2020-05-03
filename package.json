@@ -37,7 +37,8 @@
   "dependencies": {
     "dotenv": "^8.2.0",
     "googleapis": "^49.0.0",
-    "moment": "^2.25.1"
+    "moment": "^2.25.1",
+    "moment-timezone": "^0.5.28"
   },
   "devDependencies": {
     "@semantic-release/git": "^9.0.0",
