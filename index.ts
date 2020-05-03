@@ -22,7 +22,7 @@ const calendar = google.calendar("v3");
  */
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
-export interface IGetEventsParams {
+export interface GetEventsParams {
   user?: {
     accessToken: string;
     refreshToken: string;
@@ -31,7 +31,10 @@ export interface IGetEventsParams {
   to?: Date;
   calendarId?: string;
   auth?: string | OAuth2Client | JWT | Compute | UserRefreshClient;
-  timeZone?: string;
+}
+export interface Slot {
+  start: Date;
+  end: Date;
 }
 
 /*
@@ -44,29 +47,29 @@ export const getEventsFromSingleCalendar = async ({
   to,
   calendarId,
   auth,
-  timeZone,
-}: IGetEventsParams) => {
+}: GetEventsParams) => {
   oauth2Client.setCredentials({
     access_token: user?.accessToken ?? process.env.GOOGLE_CALENDAR_ACCESS,
     refresh_token: user?.refreshToken ?? process.env.GOOGLE_CALENDAR_REFRESH,
   });
   return (
-    await calendar.events.list({
-      timeMin: from?.toISOString(),
-      timeMax: to?.toISOString(),
-      auth: auth ?? oauth2Client,
-      calendarId: calendarId ?? "primary",
-      timeZone,
-      maxResults: 3,
-    })
-  ).data;
+    (
+      await calendar.events.list({
+        timeMin: from?.toISOString(),
+        timeMax: to?.toISOString(),
+        auth: auth ?? oauth2Client,
+        calendarId: calendarId ?? "primary",
+        maxResults: 3,
+      })
+    ).data.items || []
+  );
 };
 
 /*
  * Get a list of events from all calendars
  */
 export const getEventsFromAllCalendars = async (
-  params: Omit<IGetEventsParams, "calendarId">
+  params: Omit<GetEventsParams, "calendarId">
 ) => {
   oauth2Client.setCredentials({
     access_token:
@@ -83,21 +86,39 @@ export const getEventsFromAllCalendars = async (
         ...params,
         calendarId: calendar.id,
       });
-      if (events.items) allEvents.push(...events.items);
+      allEvents.push(...events);
     }
   }
   return allEvents;
 };
 
 export const getSlots = async (
-  params: Omit<IGetEventsParams, "calendarId">
+  params: GetEventsParams & {
+    slotDuration?: number;
+    slotFilter?: (slot: Slot) => boolean;
+  }
 ) => {
-  const events = await getEventsFromAllCalendars(params);
-  console.log("FINDING SLOTS FROM EVENTS", events);
+  // Default slot duration is 30 minutes
+  const slotDuration = params.slotDuration ?? 30;
+  delete params.slotDuration;
+
+  // Find all slots
+
+  let events: calendar_v3.Schema$Event[];
+  if (params.calendarId) {
+    events = await getEventsFromSingleCalendar(params);
+  } else {
+    events = await getEventsFromAllCalendars(params);
+  }
+  console.log("FINDING SLOTS FROM EVENTS", events.length);
 };
 
 const test = async () => {
-  const result = await getSlots({});
+  const result = await getSlots({
+    slotDuration: 30,
+    from: new Date(),
+    to: new Date("2020-05-10"),
+  });
   console.log("RESULT", result);
 };
 
