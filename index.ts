@@ -33,11 +33,19 @@ const chunkArrayInGroups = <T = any>(arr: T[], size: number) => {
     arrayParts.push(arr.slice(i, i + size));
   return arrayParts;
 };
+
 /*
  * Get a random element from this array
  */
 const randomItemFromArray = <T = any>(arr: T[]) =>
   arr[Math.floor(Math.random() * arr.length)];
+
+const log = (params: any, ...args: any[]) => {
+  if (params.shouldLog) {
+    if (typeof params.logger === "function") params.logger(...args);
+    else console.log(args);
+  }
+};
 
 export interface GetEventsParams {
   user?: {
@@ -111,6 +119,7 @@ export const getEventsFromAllCalendars = async (
 
 export const getSlots = async (
   params: GetEventsParams & {
+    log?: boolean;
     slotDuration?: number;
     slots?: number;
     daily?: {
@@ -119,6 +128,7 @@ export const getSlots = async (
       to: [number, number?, number?];
     };
     slotFilter?: (slot: Slot) => boolean;
+    logger?: (...args: any[]) => void;
   }
 ) => {
   // Default slot duration is 30 minutes
@@ -126,7 +136,7 @@ export const getSlots = async (
   delete params.slotDuration;
 
   // Find all slots
-  const allPotentialSlots: Slot[] = [];
+  let allPotentialSlots: Slot[] = [];
   const differenceInMinutes = moment(params.to).diff(params.from, "minutes");
   let endDate = moment(params.from).hours(0).minutes(0).seconds(0);
   while (moment(endDate).isBefore(params.to)) {
@@ -178,20 +188,41 @@ export const getSlots = async (
     }
     endDate = end;
   }
+  log(params, `Total potential slots are ${allPotentialSlots.length}`);
 
   let calendarEvents: calendar_v3.Schema$Event[];
-  if (params.calendarId) {
+  let timer = new Date().getTime();
+  if (params.calendarId)
     calendarEvents = await getEventsFromSingleCalendar(params);
-  } else {
-    calendarEvents = await getEventsFromAllCalendars(params);
-  }
+  else calendarEvents = await getEventsFromAllCalendars(params);
+  log(
+    params,
+    `Fetched ${calendarEvents.length} events from ${
+      params.calendarId ?? "all calendars"
+    } in ${(new Date().getTime() - timer) / 1000} seconds`
+  );
+
+  allPotentialSlots = allPotentialSlots.filter((slot) => {
+    let conflict = false;
+    calendarEvents.forEach((event) => {
+      if (
+        event.start?.dateTime &&
+        event.end?.dateTime &&
+        moment(slot.start).isAfter(event.start.dateTime) &&
+        moment(slot.end).isBefore(event.end.dateTime)
+      )
+        conflict = true;
+    });
+    return !conflict;
+  });
 
   if (params.slots) {
     const parts = chunkArrayInGroups(allPotentialSlots, params.slots);
-    const elements: Slot[] = [];
+    const randomSlots: Slot[] = [];
     for (let i = 0; i < params.slots; i++)
-      elements.push(randomItemFromArray(parts[i]));
-    return elements;
+      randomSlots.push(randomItemFromArray(parts[i]));
+    log(params, `Recommending ${randomSlots.length} slots`);
+    return randomSlots;
   }
 };
 
@@ -204,7 +235,7 @@ const test = async () => {
     daily: {
       timezone: "Asia/Kolkata",
       from: [12],
-      to: [19, 59, 59],
+      to: [16],
     },
   });
   console.log("RESULT", result);
