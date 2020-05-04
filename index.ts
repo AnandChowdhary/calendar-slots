@@ -17,13 +17,13 @@ const oauth2Client = new google.auth.OAuth2(
 );
 const calendar = google.calendar("v3");
 
-/*
+/**
  * Omit a key from an interface
  * @source https://stackoverflow.com/a/51804844/1656944
  */
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
-/*
+/**
  * Split an array in equal chunks
  * @source https://stackoverflow.com/a/51514813/1656944
  */
@@ -34,13 +34,13 @@ const chunkArrayInGroups = <T = any>(arr: T[], parts: number) => {
   return arrayParts;
 };
 
-/*
+/**
  * Get a random element from this array
  */
 const randomItemFromArray = <T = any>(arr: T[]) =>
   arr[Math.floor(Math.random() * arr.length)];
 
-/*
+/**
  * Live logging for debugging
  */
 const log = (params: any, ...args: any[]) => {
@@ -65,7 +65,7 @@ export interface Slot {
   end: Date;
 }
 
-/*
+/**
  * Find a user's events from a single calendar
  * Defaults to their primary calendar
  */
@@ -93,7 +93,7 @@ export const getEventsFromSingleCalendar = async ({
   );
 };
 
-/*
+/**
  * Get a list of user's events from all calendars
  */
 export const getEventsFromAllCalendars = async (
@@ -120,7 +120,7 @@ export const getEventsFromAllCalendars = async (
   return allEvents;
 };
 
-/*
+/**
  * List all free slots for a user
  */
 export const getSlots = async (
@@ -202,18 +202,18 @@ export const getSlots = async (
   if (!allPotentialSlots.length) return [];
 
   let calendarEvents: calendar_v3.Schema$Event[] = [];
-  // let timer = new Date().getTime();
-  // if (params.calendarId)
-  //   calendarEvents = await getEventsFromSingleCalendar(params);
-  // else calendarEvents = await getEventsFromAllCalendars(params);
-  // log(
-  //   params,
-  //   `Fetched ${calendarEvents.length} events from ${
-  //     params.calendarId ?? "all calendars"
-  //   } in ${(new Date().getTime() - timer) / 1000} seconds`
-  // );
+  let timer = new Date().getTime();
+  if (params.calendarId)
+    calendarEvents = await getEventsFromSingleCalendar(params);
+  else calendarEvents = await getEventsFromAllCalendars(params);
+  log(
+    params,
+    `Fetched ${calendarEvents.length} events from ${
+      params.calendarId ?? "all calendars"
+    } in ${(new Date().getTime() - timer) / 1000} seconds`
+  );
 
-  const recommendedSlots = allPotentialSlots.filter((slot) => {
+  let recommendedSlots = allPotentialSlots.filter((slot) => {
     let conflict = false;
     calendarEvents.forEach((event) => {
       if (
@@ -227,6 +227,9 @@ export const getSlots = async (
     return !conflict;
   });
 
+  if (typeof params.slotFilter === "function")
+    recommendedSlots = recommendedSlots.filter(params.slotFilter);
+
   if (params.slots) {
     if (recommendedSlots.length <= params.slots) return recommendedSlots;
     const parts = chunkArrayInGroups(recommendedSlots, params.slots);
@@ -239,25 +242,3 @@ export const getSlots = async (
 
   return recommendedSlots;
 };
-
-// const test = async () => {
-//   const result = await getSlots({
-//     slotDuration: 30,
-//     log: true,
-//     slots: 3,
-//     from: new Date(),
-//     to: new Date("2020-05-10"),
-//     days: [1, 2, 3, 4, 5],
-//     daily: {
-//       timezone: "Asia/Kolkata",
-//       from: [12],
-//       to: [16],
-//     },
-//   });
-//   console.log(
-//     "RESULT",
-//     result.map((i) => i.start.toLocaleString())
-//   );
-// };
-
-// test();
