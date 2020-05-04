@@ -109,7 +109,7 @@ export const getEventsFromAllCalendars = async (
   const auth = params.auth ?? oauth2Client;
   const calendars = await calendar.calendarList.list({ auth });
   const allEvents: calendar_v3.Schema$Event[] = [];
-  each<calendar_v3.Schema$Event, void>(
+  await each<calendar_v3.Schema$Event, void>(
     calendars.data.items ?? [],
     async (calendar) => {
       if (calendar.id) {
