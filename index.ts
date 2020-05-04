@@ -16,7 +16,7 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CALENDAR_REDIRECT_URL ??
     "https://developers.google.com/oauthplayground"
 );
-const calendar = google.calendar("v3");
+const globalCalendar = google.calendar("v3");
 
 /**
  * Omit a key from an interface
@@ -58,6 +58,7 @@ export interface GetEventsParams {
   };
   from: moment.MomentInput;
   to: moment.MomentInput;
+  calendar?: calendar_v3.Calendar;
   calendarId?: string;
   auth?: string | OAuth2Client | JWT | Compute | UserRefreshClient;
 }
@@ -74,6 +75,7 @@ export const getEventsFromSingleCalendar = async ({
   user,
   from,
   to,
+  calendar,
   calendarId,
   auth,
 }: GetEventsParams) => {
@@ -83,7 +85,7 @@ export const getEventsFromSingleCalendar = async ({
   });
   return (
     (
-      await calendar.events.list({
+      await (calendar ?? globalCalendar).events.list({
         timeMin: from ? moment(from).toISOString() : undefined,
         timeMax: to ? moment(to).toISOString() : undefined,
         auth: auth ?? oauth2Client,
@@ -107,15 +109,17 @@ export const getEventsFromAllCalendars = async (
       params.user?.refreshToken ?? process.env.GOOGLE_CALENDAR_REFRESH,
   });
   const auth = params.auth ?? oauth2Client;
-  const calendars = await calendar.calendarList.list({ auth });
+  const calendars = await (
+    params.calendar ?? globalCalendar
+  ).calendarList.list({ auth });
   const allEvents: calendar_v3.Schema$Event[] = [];
   await each<calendar_v3.Schema$Event, void>(
     calendars.data.items ?? [],
-    async (calendar) => {
-      if (calendar.id) {
+    async (cal) => {
+      if (cal.id) {
         const events = await getEventsFromSingleCalendar({
           ...params,
-          calendarId: calendar.id,
+          calendarId: cal.id,
         });
         allEvents.push(...events);
       }
