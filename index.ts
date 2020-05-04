@@ -6,6 +6,7 @@ import {
   UserRefreshClient,
 } from "google-auth-library";
 import { config } from "dotenv";
+import { each } from "async-parallel";
 import moment from "moment-timezone";
 config();
 
@@ -108,15 +109,19 @@ export const getEventsFromAllCalendars = async (
   const auth = params.auth ?? oauth2Client;
   const calendars = await calendar.calendarList.list({ auth });
   const allEvents: calendar_v3.Schema$Event[] = [];
-  for await (const calendar of calendars.data.items ?? []) {
-    if (calendar.id) {
-      const events = await getEventsFromSingleCalendar({
-        ...params,
-        calendarId: calendar.id,
-      });
-      allEvents.push(...events);
-    }
-  }
+  each<calendar_v3.Schema$Event, void>(
+    calendars.data.items ?? [],
+    async (calendar) => {
+      if (calendar.id) {
+        const events = await getEventsFromSingleCalendar({
+          ...params,
+          calendarId: calendar.id,
+        });
+        allEvents.push(...events);
+      }
+    },
+    { concurrency: 5 }
+  );
   return allEvents;
 };
 
