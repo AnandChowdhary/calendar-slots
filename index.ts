@@ -159,6 +159,7 @@ export const getSlots = async (
   while (moment(endDate).isBefore(params.to)) {
     const start = endDate;
     const end = moment(start).add(slotDuration, "minutes");
+    const now = moment();
 
     if (
       daysAllowed.includes(moment(start).day()) &&
@@ -174,7 +175,8 @@ export const getSlots = async (
           .hours(params.daily?.to[0] ?? 0)
           .minutes(params.daily?.to[1] ?? 0)
           .seconds(params.daily?.to[2] ?? 0)
-      )
+      ) &&
+      start.isAfter(now)
     ) {
       const startTime = moment(start);
       const endTime = moment(end);
