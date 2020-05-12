@@ -1,13 +1,15 @@
 import { getSlots } from "./index";
+import moment from "moment-timezone";
 
 const test = async () => {
   const result = await getSlots({
     slotDuration: 30,
     log: true,
     slots: 3,
-    from: new Date(),
-    to: new Date("2020-05-10"),
+    from: moment(),
+    to: moment().add(1, "day").endOf("day"),
     days: [1, 2, 3, 4, 5],
+    calendarId: "primary",
     daily: {
       timezone: "Asia/Kolkata",
       from: [12],
