@@ -82,6 +82,10 @@ const oauth2Client = new google.auth.OAuth2(
   "Client Secret",
   "Redirect URL"
 );
+oauth2Client.setCredentials({
+  access_token: "Access token",
+  refresh_token: "Refresh token",
+});
 const calendar = google.calendar("v3");
 
 const slots = await findSlots({
@@ -89,10 +93,6 @@ const slots = await findSlots({
   to: nextWeek,
   auth: oauth2Client,
   calendar: calendar,
-  user: {
-    accessToken: "Access token",
-    refreshToken: "Refresh token",
-  },
 });
 ```
 
