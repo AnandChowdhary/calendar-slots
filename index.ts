@@ -137,6 +137,7 @@ export const getSlots = async (
     log?: boolean;
     slotDuration?: number;
     slots?: number;
+    padding?: number;
     days?: number[];
     daily?: {
       timezone: string;
@@ -230,8 +231,12 @@ export const getSlots = async (
       if (
         event.start?.dateTime &&
         event.end?.dateTime &&
-        moment(slot.start).isAfter(event.start.dateTime) &&
-        moment(slot.end).isBefore(event.end.dateTime)
+        moment(slot.start)
+          .subtract(params.padding ?? 0, "minutes")
+          .isAfter(event.start.dateTime) &&
+        moment(slot.end)
+          .add(params.padding ?? 0, "minutes")
+          .isBefore(event.end.dateTime)
       )
         conflict = true;
     });

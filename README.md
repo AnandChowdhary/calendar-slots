@@ -62,6 +62,7 @@ Each `Slot` has two `Date` objects, `start` and `end`. The `from` and `to` prope
 | `daily.timezone`    | string                     | Timezone for time restrictions    |
 | `daily.from`        | [number, number?, number?] | Start [hours, minutes, seconds]   |
 | `daily.to`          | [number, number?, number?] | End [hours, minutes, seconds]     |
+| `padding`           | number                     | Time (min) between events         |
 | `slotFilter`        | (slot: Slot) => boolean    | Custom filter for available slots |
 | `calendarId`        | string                     | Specific Google Calender ID       |
 | `auth`              | Google API OAuth2 client   | API client to use                 |
