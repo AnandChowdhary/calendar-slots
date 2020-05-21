@@ -215,15 +215,19 @@ export const getSlots = async (
 
   let calendarEvents: calendar_v3.Schema$Event[] = [];
   let timer = new Date().getTime();
-  if (params.calendarId)
-    calendarEvents = await getEventsFromSingleCalendar(params);
-  else calendarEvents = await getEventsFromAllCalendars(params);
-  log(
-    params,
-    `Fetched ${calendarEvents.length} events from ${
-      params.calendarId ?? "all calendars"
-    } in ${(new Date().getTime() - timer) / 1000} seconds`
-  );
+  if (params.user || params.auth || params.calendarId || params.calendar) {
+    if (params.calendarId)
+      calendarEvents = await getEventsFromSingleCalendar(params);
+    else calendarEvents = await getEventsFromAllCalendars(params);
+    log(
+      params,
+      `Fetched ${calendarEvents.length} events from ${
+        params.calendarId ?? "all calendars"
+      } in ${(new Date().getTime() - timer) / 1000} seconds`
+    );
+  } else {
+    log(params, "Skipped fetching calendar events");
+  }
 
   let recommendedSlots = allPotentialSlots.filter((slot) => {
     let conflict = false;
