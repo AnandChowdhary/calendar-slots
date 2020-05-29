@@ -130,6 +130,13 @@ export const getEventsFromAllCalendars = async (
 };
 
 /**
+ * Get calendar events from a webcal ICS URL
+ */
+export const getEventsFromWebcal = async (url: string) => {
+  return [] as any[];
+};
+
+/**
  * List all free slots for a user
  */
 export const getSlots = async (
@@ -138,6 +145,7 @@ export const getSlots = async (
     slotDuration?: number;
     slots?: number;
     padding?: number;
+    url?: string;
     days?: number[];
     daily?: {
       timezone: string;
@@ -213,7 +221,10 @@ export const getSlots = async (
   log(params, `Total potential slots are ${allPotentialSlots.length}`);
   if (!allPotentialSlots.length) return [];
 
-  let calendarEvents: calendar_v3.Schema$Event[] = [];
+  let calendarEvents: {
+    start?: { dateTime?: string | null };
+    end?: { dateTime?: string | null };
+  }[] = [];
   let timer = new Date().getTime();
   if (params.user || params.auth || params.calendarId || params.calendar) {
     if (params.calendarId)
@@ -225,6 +236,9 @@ export const getSlots = async (
         params.calendarId ?? "all calendars"
       } in ${(new Date().getTime() - timer) / 1000} seconds`
     );
+  } else if (params.url) {
+    calendarEvents = await getEventsFromWebcal(params.url);
+    log(params, `Fetched ${calendarEvents.length} events from Webcal`);
   } else {
     log(params, "Skipped fetching calendar events");
   }
