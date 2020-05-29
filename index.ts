@@ -284,8 +284,20 @@ export const getSlots = async (
     if (recommendedSlots.length <= params.slots) return recommendedSlots;
     const parts = chunkArrayInGroups(recommendedSlots, params.slots);
     const randomSlots: Slot[] = [];
-    for (let i = 0; i < params.slots; i++)
-      randomSlots.push(randomItemFromArray(parts[i]));
+    for (let i = 0; i < params.slots; i++) {
+      let hasSlot = true;
+      let slot = randomItemFromArray(parts[i]);
+      while (hasSlot) {
+        slot = randomItemFromArray(parts[i]);
+        hasSlot =
+          randomSlots.find(
+            (item) =>
+              item.start.getTime() === slot.start.getTime() &&
+              item.end.getTime() === slot.end.getTime()
+          ) !== undefined;
+      }
+      randomSlots.push(slot);
+    }
     log(params, `Recommending ${randomSlots.length} slots`);
     return randomSlots;
   }

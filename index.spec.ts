@@ -7,7 +7,7 @@ const test = async () => {
     log: true,
     slots: 3,
     from: moment(),
-    to: moment().add(1, "day").endOf("day"),
+    to: moment().add(3, "day").endOf("day"),
     days: [1, 2, 3, 4, 5],
     calendarId: "primary",
     daily: {
