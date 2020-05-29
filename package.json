@@ -40,7 +40,8 @@
     "googleapis": "^49.0.0",
     "got": "^11.1.4",
     "moment": "^2.25.3",
-    "moment-timezone": "^0.5.28"
+    "moment-timezone": "^0.5.28",
+    "node-ical": "^0.11.3"
   },
   "devDependencies": {
     "@semantic-release/git": "^9.0.0",
