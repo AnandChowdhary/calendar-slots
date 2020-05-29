@@ -30,7 +30,7 @@ export type Strategy =
   | "linear"
   | "heavy-firsts"
   | "heavy-lasts"
-  | "heavy-corners"
+  | "heavy-centers"
   | "heavy-mornings"
   | "heavy-afternoons"
   | "heavy-evenings"
@@ -39,19 +39,7 @@ export type Strategy =
   | "heavy-wednesdays"
   | "heavy-fridays"
   | "heavy-saturday"
-  | "heavy-sundays"
-  | "light-firsts"
-  | "light-lasts"
-  | "light-corners"
-  | "light-mornings"
-  | "light-afternoons"
-  | "light-evenings"
-  | "light-mondays"
-  | "light-tuesdays"
-  | "light-wednesdays"
-  | "light-fridays"
-  | "light-saturday"
-  | "light-sundays";
+  | "heavy-sundays";
 
 /**
  * Split an array in equal chunks
@@ -90,9 +78,10 @@ export const weightedItemFromArray = (
     addExtraWeight((array, index) => (array.length - index) / array.length);
   if (strategies.includes("heavy-lasts"))
     addExtraWeight((array, index) => index / array.length);
-  if (strategies.includes("heavy-corners"))
+  if (strategies.includes("heavy-centers"))
     addExtraWeight(
-      (array, index) => Math.abs(array.length / 2 - index) / (array.length / 2)
+      (array, index) =>
+        1 - Math.abs(array.length / 2 - index) / (array.length / 2)
     );
   [
     "sunday",
