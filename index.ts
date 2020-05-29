@@ -25,6 +25,35 @@ const globalCalendar = google.calendar("v3");
  */
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
+/** Slot deciding strategies */
+export type Strategy =
+  | "linear"
+  | "heavy-firsts"
+  | "heavy-lasts"
+  | "heavy-corners"
+  | "heavy-center"
+  | "heavy-mornings"
+  | "heavy-afternoons"
+  | "heavy-evenings"
+  | "heavy-mondays"
+  | "heavy-tuesdays"
+  | "heavy-wednesdays"
+  | "heavy-fridays"
+  | "heavy-saturday"
+  | "heavy-sundays"
+  | "light-firsts"
+  | "light-lasts"
+  | "light-centers"
+  | "light-mornings"
+  | "light-afternoons"
+  | "light-evenings"
+  | "light-mondays"
+  | "light-tuesdays"
+  | "light-wednesdays"
+  | "light-fridays"
+  | "light-saturday"
+  | "light-sundays";
+
 /**
  * Split an array in equal chunks
  * @source https://stackoverflow.com/a/51514813/1656944
@@ -37,10 +66,38 @@ const chunkArrayInGroups = <T = any>(arr: T[], parts: number) => {
 };
 
 /**
- * Get a random element from this array
+ * Get a random element from this array, strategy-weighted
  */
-const randomItemFromArray = <T = any>(arr: T[]) =>
-  arr[Math.floor(Math.random() * arr.length)];
+const weightedItemFromArray = <T = any>(
+  arr: T[],
+  strategies: Strategy[],
+  weight = 3
+) => {
+  const originalArray = { ...arr };
+  const addExtraWeight = (weighter: (array: T[], index: number) => number) => {
+    originalArray.forEach((item, index) => {
+      for (
+        let i = 0;
+        i < Math.abs(weighter(originalArray, index) * (weight - 1));
+        i++
+      )
+        arr.push(item);
+    });
+  };
+  if (strategies.includes("heavy-firsts"))
+    addExtraWeight((array, index) => (array.length - index) / array.length);
+  if (strategies.includes("heavy-lasts"))
+    addExtraWeight((array, index) => index / array.length);
+  if (strategies.includes("heavy-corners"))
+    addExtraWeight(
+      (array, index) => Math.abs(array.length / 2 - index) / (array.length / 2)
+    );
+  if (strategies.includes("heavy-center"))
+    addExtraWeight((array, index) =>
+      Math.abs(1 - Math.abs(array.length / 2 - index) / (array.length / 2))
+    );
+  return arr[Math.floor(Math.random() * arr.length)];
+};
 
 /**
  * Live logging for debugging
@@ -162,6 +219,8 @@ export const getSlots = async (
     slots?: number;
     padding?: number;
     url?: string;
+    strategies?: Strategy[];
+    weight?: number;
     days?: number[];
     daily?: {
       timezone: string;
@@ -175,6 +234,7 @@ export const getSlots = async (
   // Default slot duration is 30 minutes
   const slotDuration = params.slotDuration ?? 30;
   const daysAllowed = params.days ?? [0, 1, 2, 3, 4, 5, 6];
+  const strategies = params.strategies ?? ["linear"];
   delete params.slotDuration;
 
   // Find all slots
@@ -286,9 +346,9 @@ export const getSlots = async (
     const randomSlots: Slot[] = [];
     for (let i = 0; i < params.slots; i++) {
       let hasSlot = true;
-      let slot = randomItemFromArray(parts[i]);
+      let slot = weightedItemFromArray(parts[i], strategies, params.weight);
       while (hasSlot) {
-        slot = randomItemFromArray(parts[i]);
+        slot = weightedItemFromArray(parts[i], strategies, params.weight);
         hasSlot =
           randomSlots.find(
             (item) =>
