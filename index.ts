@@ -7,6 +7,7 @@ import {
 } from "google-auth-library";
 import { config } from "dotenv";
 import { each } from "async-parallel";
+import got from "got";
 import moment from "moment-timezone";
 config();
 
@@ -133,6 +134,7 @@ export const getEventsFromAllCalendars = async (
  * Get calendar events from a webcal ICS URL
  */
 export const getEventsFromWebcal = async (url: string) => {
+  const { body } = await got(url);
   return [] as any[];
 };
 
