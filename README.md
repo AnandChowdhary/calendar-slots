@@ -62,6 +62,7 @@ Each `Slot` has two `Date` objects, `start` and `end`. The `from` and `to` prope
 | `daily.timezone`    | string                     | Timezone for time restrictions    |
 | `daily.from`        | [number, number?, number?] | Start [hours, minutes, seconds]   |
 | `daily.to`          | [number, number?, number?] | End [hours, minutes, seconds]     |
+| `strategies`        | string                     | Recommendation strategies         |
 | `padding`           | number                     | Time (min) between events         |
 | `slotFilter`        | (slot: Slot) => boolean    | Custom filter for available slots |
 | `calendarId`        | string                     | Specific Google Calender ID       |
@@ -148,6 +149,44 @@ const slots = await findSlots({
   },
 });
 ```
+
+### Prefer morning slots
+
+You may want to increase the probability of getting certain slots, using strategies.
+
+```ts
+/**
+ * Find 3 slots, 30 minutes, from today until next week
+ * but only between Monday and Friday
+ * and prefer morning slots rather than later in the day
+ */
+const slots = await findSlots({
+  slotDuration: 30,
+  slots: 3,
+  from: new Date(),
+  to: nextWeek,
+  days: [1, 2, 3, 4, 5],
+  strategies: ["heavy-mornings"],
+});
+```
+
+Available strategies are:
+
+- `linear` (default)
+- `heavy-firsts` (prefer beginning of all slots)
+- `heavy-lasts` (prefer ending of all slots)
+- `heavy-centers` (prefer middle of all slots)
+- `heavy-mornings` (prefer mornings)
+- `heavy-afternoons` (prefer afternoons)
+- `heavy-evenings` (prefer evenings)
+- `heavy-mondays` (prefer Mondays)
+- `heavy-tuesdays` (prefer Tuesdays)
+- `heavy-wednesdays` (prefer Wednesdays)
+- `heavy-fridays` (prefer Fridays)
+- `heavy-saturday` (prefer Saturday)
+- `heavy-sundays` (prefer Sundays)
+
+There are no strategies for preference of light rather than heavy; however, this works: If you want light mornings, you can pass the strategies `["heavy-afternoons", "heavy-evenings"]`. Similarly, if you want light Fridays, you can pass `heavy-` other days.
 
 ## 👩‍💻 Development
 
