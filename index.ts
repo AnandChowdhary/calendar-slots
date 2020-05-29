@@ -7,7 +7,7 @@ import {
 } from "google-auth-library";
 import { config } from "dotenv";
 import { each } from "async-parallel";
-import got from "got";
+import ical, { VEvent } from "node-ical";
 import moment from "moment-timezone";
 config();
 
@@ -134,8 +134,22 @@ export const getEventsFromAllCalendars = async (
  * Get calendar events from a webcal ICS URL
  */
 export const getEventsFromWebcal = async (url: string) => {
-  const { body } = await got(url);
-  return [] as any[];
+  const directEvents = await ical.async.fromURL(
+    url.replace("webcal:", "http:")
+  );
+  return Object.values(directEvents)
+    .filter((i) => i.type === "VEVENT")
+    .map((i) => {
+      const event = i as VEvent;
+      return {
+        start: {
+          dateTime: event.start.toISOString(),
+        },
+        end: {
+          dateTime: event.end.toISOString(),
+        },
+      };
+    });
 };
 
 /**
