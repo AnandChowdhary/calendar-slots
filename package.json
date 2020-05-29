@@ -38,6 +38,7 @@
     "async-parallel": "^1.2.3",
     "dotenv": "^8.2.0",
     "googleapis": "^49.0.0",
+    "got": "^11.1.4",
     "moment": "^2.25.3",
     "moment-timezone": "^0.5.28"
   },
