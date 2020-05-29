@@ -31,7 +31,6 @@ export type Strategy =
   | "heavy-firsts"
   | "heavy-lasts"
   | "heavy-corners"
-  | "heavy-center"
   | "heavy-mornings"
   | "heavy-afternoons"
   | "heavy-evenings"
@@ -43,7 +42,7 @@ export type Strategy =
   | "heavy-sundays"
   | "light-firsts"
   | "light-lasts"
-  | "light-centers"
+  | "light-corners"
   | "light-mornings"
   | "light-afternoons"
   | "light-evenings"
@@ -68,17 +67,20 @@ const chunkArrayInGroups = <T = any>(arr: T[], parts: number) => {
 /**
  * Get a random element from this array, strategy-weighted
  */
-const weightedItemFromArray = <T = any>(
-  arr: T[],
-  strategies: Strategy[],
-  weight = 3
+export const weightedItemFromArray = (
+  params: GetEventsParams & GetSlotsParams,
+  arr: Slot[],
+  strategies: Strategy[]
 ) => {
-  const originalArray = { ...arr };
-  const addExtraWeight = (weighter: (array: T[], index: number) => number) => {
+  const originalArray = [...arr];
+  const addExtraWeight = (
+    weighter: (array: Slot[], index: number) => number
+  ) => {
     originalArray.forEach((item, index) => {
       for (
         let i = 0;
-        i < Math.abs(weighter(originalArray, index) * (weight - 1));
+        i <
+        Math.round(weighter(originalArray, index) * ((params.weight ?? 2) - 1));
         i++
       )
         arr.push(item);
@@ -92,9 +94,47 @@ const weightedItemFromArray = <T = any>(
     addExtraWeight(
       (array, index) => Math.abs(array.length / 2 - index) / (array.length / 2)
     );
-  if (strategies.includes("heavy-center"))
+  [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ].forEach((day, dayIndex) => {
+    if (
+      strategies.includes(`heavy-${day}s` as Strategy) &&
+      params.daily?.timezone
+    )
+      addExtraWeight((array, index) =>
+        moment.tz(array[index].start, params.daily?.timezone ?? "").day() ===
+        dayIndex
+          ? 1
+          : 0
+      );
+  });
+  if (strategies.includes("heavy-mornings") && params.daily?.timezone)
     addExtraWeight((array, index) =>
-      Math.abs(1 - Math.abs(array.length / 2 - index) / (array.length / 2))
+      moment.tz(array[index].start, params.daily?.timezone ?? "").hours() > 5 &&
+      moment.tz(array[index].start, params.daily?.timezone ?? "").hours() < 12
+        ? 1
+        : 0
+    );
+  if (strategies.includes("heavy-afternoons") && params.daily?.timezone)
+    addExtraWeight((array, index) =>
+      moment.tz(array[index].start, params.daily?.timezone ?? "").hours() >
+        11 &&
+      moment.tz(array[index].start, params.daily?.timezone ?? "").hours() < 4
+        ? 1
+        : 0
+    );
+  if (strategies.includes("heavy-evenings") && params.daily?.timezone)
+    addExtraWeight((array, index) =>
+      moment.tz(array[index].start, params.daily?.timezone ?? "").hours() > 3 &&
+      moment.tz(array[index].start, params.daily?.timezone ?? "").hours() < 6
+        ? 1
+        : 0
     );
   return arr[Math.floor(Math.random() * arr.length)];
 };
@@ -119,6 +159,23 @@ export interface GetEventsParams {
   calendar?: calendar_v3.Calendar;
   calendarId?: string;
   auth?: string | OAuth2Client | JWT | Compute | UserRefreshClient;
+}
+export interface GetSlotsParams {
+  log?: boolean;
+  slotDuration?: number;
+  slots?: number;
+  padding?: number;
+  url?: string;
+  strategies?: Strategy[];
+  weight?: number;
+  days?: number[];
+  daily?: {
+    timezone: string;
+    from?: [number, number?, number?];
+    to?: [number, number?, number?];
+  };
+  slotFilter?: (slot: Slot) => boolean;
+  logger?: (...args: any[]) => void;
 }
 export interface Slot {
   start: Date;
@@ -213,23 +270,7 @@ export const getEventsFromWebcal = async (url: string) => {
  * List all free slots for a user
  */
 export const getSlots = async (
-  params: GetEventsParams & {
-    log?: boolean;
-    slotDuration?: number;
-    slots?: number;
-    padding?: number;
-    url?: string;
-    strategies?: Strategy[];
-    weight?: number;
-    days?: number[];
-    daily?: {
-      timezone: string;
-      from: [number, number?, number?];
-      to: [number, number?, number?];
-    };
-    slotFilter?: (slot: Slot) => boolean;
-    logger?: (...args: any[]) => void;
-  }
+  params: GetEventsParams & GetSlotsParams
 ): Promise<Slot[]> => {
   // Default slot duration is 30 minutes
   const slotDuration = params.slotDuration ?? 30;
@@ -251,15 +292,15 @@ export const getSlots = async (
       daysAllowed.includes(end.day()) &&
       start.isAfter(
         moment(params.from)
-          .hours(params.daily?.from[0] ?? 0)
-          .minutes(params.daily?.from[1] ?? 0)
-          .seconds(params.daily?.from[2] ?? 0)
+          .hours((params.daily?.from ?? [])[0] ?? 0)
+          .minutes((params.daily?.from ?? [])[1] ?? 0)
+          .seconds((params.daily?.from ?? [])[2] ?? 0)
       ) &&
       end.isBefore(
         moment(params.to)
-          .hours(params.daily?.to[0] ?? 0)
-          .minutes(params.daily?.to[1] ?? 0)
-          .seconds(params.daily?.to[2] ?? 0)
+          .hours((params.daily?.to ?? [])[0] ?? 0)
+          .minutes((params.daily?.to ?? [])[1] ?? 0)
+          .seconds((params.daily?.to ?? [])[2] ?? 0)
       ) &&
       start.isAfter(now)
     ) {
@@ -272,16 +313,16 @@ export const getSlots = async (
           moment.tz(startTime, params.daily.timezone).isBefore(
             moment
               .tz(startTime, params.daily.timezone)
-              .hours(params.daily.from[0])
-              .minutes(params.daily.from[1] ?? 0)
-              .seconds(params.daily.from[2] ?? 0)
+              .hours((params.daily.from ?? [])[0] ?? 0)
+              .minutes((params.daily.from ?? [])[1] ?? 0)
+              .seconds((params.daily.from ?? [])[2] ?? 0)
           ) ||
           moment.tz(endTime, params.daily.timezone).isAfter(
             moment
               .tz(endTime, params.daily.timezone)
-              .hours(params.daily.to[0])
-              .minutes(params.daily.to[1] ?? 0)
-              .seconds(params.daily.to[2] ?? 0)
+              .hours((params.daily.to ?? [])[0] ?? 0)
+              .minutes((params.daily.to ?? [])[1] ?? 0)
+              .seconds((params.daily.to ?? [])[2] ?? 0)
           )
         )
           dailyConditionsMet = false;
@@ -346,9 +387,9 @@ export const getSlots = async (
     const randomSlots: Slot[] = [];
     for (let i = 0; i < params.slots; i++) {
       let hasSlot = true;
-      let slot = weightedItemFromArray(parts[i], strategies, params.weight);
+      let slot = weightedItemFromArray(params, parts[i], strategies);
       while (hasSlot) {
-        slot = weightedItemFromArray(parts[i], strategies, params.weight);
+        slot = weightedItemFromArray(params, parts[i], strategies);
         hasSlot =
           randomSlots.find(
             (item) =>
