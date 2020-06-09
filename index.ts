@@ -351,18 +351,32 @@ export const getSlots = async (
 
   let recommendedSlots = allPotentialSlots.filter((slot) => {
     let conflict = false;
+    /**
+     * Check if two dates overlap
+     * @source https://stackoverflow.com/a/22785208/1656944
+     */
     calendarEvents.forEach((event) => {
-      if (
-        event.start?.dateTime &&
-        event.end?.dateTime &&
-        moment(slot.start)
+      if (event.start && event.end) {
+        const eventStart = moment(event.start.dateTime)
           .subtract(params.padding ?? 0, "minutes")
-          .isAfter(event.start.dateTime) &&
-        moment(slot.end)
+          .toDate()
+          .getTime();
+        const eventEnd = moment(event.end.dateTime)
           .add(params.padding ?? 0, "minutes")
-          .isBefore(event.end.dateTime)
-      )
-        conflict = true;
+          .toDate()
+          .getTime();
+        const slotStart = moment(slot.start).toDate().getTime();
+        const slotEnd = moment(slot.end).toDate().getTime();
+        if (
+          // Slot starts in event
+          (eventStart <= slotStart && slotStart <= eventEnd) ||
+          // Slot ends in event
+          (eventStart <= slotEnd && slotEnd <= eventEnd) ||
+          // Event is in slot
+          (slotStart < eventStart && eventEnd < slotEnd)
+        )
+          conflict = true;
+      }
     });
     return !conflict;
   });
