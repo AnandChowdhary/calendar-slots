@@ -1,6 +1,6 @@
 # 🗓️ Calendar Slots
 
-Find availability for a user based on their calendar. Currently only for Google Calendar.
+Find availability for a user based on their calendar. Works with Google Calendar or any iCalendar URL.
 
 [![Node CI](https://img.shields.io/github/workflow/status/AnandChowdhary/calendar-slots/Node%20CI?label=GitHub%20CI&logo=github)](https://github.com/AnandChowdhary/calendar-slots/actions)
 [![Travis CI](https://img.shields.io/travis/AnandChowdhary/calendar-slots?label=Travis%20CI&logo=travis%20ci&logoColor=%23fff)](https://travis-ci.org/AnandChowdhary/calendar-slots)
@@ -65,6 +65,7 @@ Each `Slot` has two `Date` objects, `start` and `end`. The `from` and `to` prope
 | `strategies`        | string                     | Recommendation strategies         |
 | `padding`           | number                     | Time (min) between events         |
 | `slotFilter`        | (slot: Slot) => boolean    | Custom filter for available slots |
+| `url`.              | string                     | iCalendar URL                     |
 | `calendarId`        | string                     | Specific Google Calender ID       |
 | `auth`              | Google API OAuth2 client   | API client to use                 |
 | `user.accessToken`  | string                     | User's access token               |
@@ -72,7 +73,21 @@ Each `Slot` has two `Date` objects, `start` and `end`. The `from` and `to` prope
 | `log`               | boolean                    | Whether to console.log steps      |
 | `logger`            | (...args: any[]) => void   | Custom function for logging       |
 
-### Authentication
+### iCalendar
+
+Any iCalendar-compliant URL is supported; all major calendar providers (Google Calendar, Apple Calendar, Microsoft Outlook, Yahoo! Calendar, etc.) support iCalendar URLs.
+
+You can specify the `url`:
+
+```ts
+const slots = await findSlots({
+  from: new Date(),
+  to: nextWeek,
+  url: "webcal://your-example-url.ics"
+});
+```
+
+### Authentication with Google Calendar
 
 You can either specify `auth`, `calendar`, and `user`:
 
