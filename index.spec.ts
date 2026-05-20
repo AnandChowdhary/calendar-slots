@@ -1,25 +1,27 @@
 import { getSlots } from "./index";
 import moment from "moment-timezone";
 
-const test = async () => {
-  const result = await getSlots({
-    slotDuration: 30,
-    log: true,
-    slots: 3,
-    from: moment(),
-    to: moment().add(3, "day").endOf("day"),
-    days: [1, 2, 3, 4, 5],
-    calendarId: "primary",
-    daily: {
-      timezone: "Asia/Kolkata",
-      from: [12],
-      to: [16],
-    },
-  });
-  console.log(
-    "RESULT",
-    result.map((i) => i.start.toLocaleString())
-  );
-};
+describe("getSlots", () => {
+  it("finds available slots without Google Calendar credentials", async () => {
+    const result = await getSlots({
+      slotDuration: 30,
+      from: moment.utc("2030-01-01T00:00:00Z"),
+      to: moment.utc("2030-01-01T23:59:59Z"),
+      daily: {
+        timezone: "UTC",
+        from: [9],
+        to: [11],
+      },
+    });
 
-test();
+    // Current slot bounds are exclusive, so a 09:00-11:00 window starts at 09:30.
+    expect(result.map((slot) => moment.utc(slot.start).format("HH:mm"))).toEqual([
+      "09:30",
+      "10:00",
+    ]);
+    expect(result.map((slot) => moment.utc(slot.end).format("HH:mm"))).toEqual([
+      "10:00",
+      "10:30",
+    ]);
+  });
+});

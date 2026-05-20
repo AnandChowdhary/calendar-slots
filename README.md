@@ -2,7 +2,7 @@
 
 Find availability for a user based on their calendar. Works with Google Calendar or any iCalendar URL.
 
-[![Node CI](https://img.shields.io/github/workflow/status/AnandChowdhary/calendar-slots/Node%20CI?label=GitHub%20CI&logo=github)](https://github.com/AnandChowdhary/calendar-slots/actions)
+[![Node CI](https://img.shields.io/github/actions/workflow/status/AnandChowdhary/calendar-slots/release.yml?branch=master&label=GitHub%20CI&logo=github)](https://github.com/AnandChowdhary/calendar-slots/actions/workflows/release.yml)
 [![Travis CI](https://img.shields.io/travis/AnandChowdhary/calendar-slots?label=Travis%20CI&logo=travis%20ci&logoColor=%23fff)](https://travis-ci.org/AnandChowdhary/calendar-slots)
 [![Dependencies](https://img.shields.io/librariesio/release/npm/calendar-slots)](https://libraries.io/npm/calendar-slots)
 [![License](https://img.shields.io/npm/l/calendar-slots)](https://github.com/AnandChowdhary/calendar-slots/blob/master/LICENSE)
