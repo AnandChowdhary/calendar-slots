@@ -7,6 +7,7 @@ import {
 } from "google-auth-library";
 import { config } from "dotenv";
 import { each } from "async-parallel";
+import { promises as fs } from "fs";
 import ical, { VEvent } from "node-ical";
 import moment from "moment-timezone";
 config();
@@ -155,6 +156,7 @@ export interface GetSlotsParams {
   slots?: number;
   padding?: number;
   url?: string;
+  file?: string;
   strategies?: Strategy[];
   weight?: number;
   days?: number[];
@@ -234,14 +236,11 @@ export const getEventsFromAllCalendars = async (
 };
 
 /**
- * Get calendar events from a webcal ICS URL
+ * Convert parsed iCalendar data to Google Calendar-shaped events
  */
-export const getEventsFromWebcal = async (url: string) => {
-  const directEvents = await ical.async.fromURL(
-    url.replace("webcal:", "http:")
-  );
-  return Object.values(directEvents)
-    .filter((i) => i.type === "VEVENT")
+const getEventsFromIcalData = (directEvents: { [key: string]: unknown }) =>
+  Object.values(directEvents)
+    .filter((i) => (i as { type?: string }).type === "VEVENT")
     .map((i) => {
       const event = i as VEvent;
       return {
@@ -253,6 +252,23 @@ export const getEventsFromWebcal = async (url: string) => {
         },
       };
     });
+
+/**
+ * Get calendar events from a webcal ICS URL
+ */
+export const getEventsFromWebcal = async (url: string) => {
+  const directEvents = await ical.async.fromURL(
+    url.replace("webcal:", "http:")
+  );
+  return getEventsFromIcalData(directEvents);
+};
+
+/**
+ * Get calendar events from a local ICS file
+ */
+export const getEventsFromIcalFile = async (file: string) => {
+  const directEvents = await ical.async.parseICS(await fs.readFile(file, "utf8"));
+  return getEventsFromIcalData(directEvents);
 };
 
 /**
@@ -345,6 +361,9 @@ export const getSlots = async (
   } else if (params.url) {
     calendarEvents = await getEventsFromWebcal(params.url);
     log(params, `Fetched ${calendarEvents.length} events from Webcal`);
+  } else if (params.file) {
+    calendarEvents = await getEventsFromIcalFile(params.file);
+    log(params, `Fetched ${calendarEvents.length} events from iCalendar file`);
   } else {
     log(params, "Skipped fetching calendar events");
   }
