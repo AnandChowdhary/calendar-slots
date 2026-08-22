@@ -52,7 +52,34 @@ jobs:
         run: npm ci
       - name: Build TypeScript
         run: npm run build
+      - name: Check whether a release is needed
+        id: release_preflight
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node <<'NODE'
+          const fs = require("fs")
+          const semanticRelease = require("semantic-release")
+
+          semanticRelease(
+            { dryRun: true, ci: false },
+            {
+              cwd: process.cwd(),
+              env: process.env,
+              stdout: process.stdout,
+              stderr: process.stderr,
+            },
+          )
+            .then((result) => {
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, `required=${Boolean(result)}\n`)
+            })
+            .catch((error) => {
+              console.error(error)
+              process.exitCode = 1
+            })
+          NODE
       - name: Release
+        if: steps.release_preflight.outputs.required == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
