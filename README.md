@@ -1,6 +1,6 @@
 # 🗓️ Calendar Slots
 
-Find availability for a user based on their calendar. Works with Google Calendar or any iCalendar URL.
+Find availability for a user based on their calendar. Works with Google Calendar, any iCalendar URL, or a local `.ics` file.
 
 [![Node CI](https://img.shields.io/github/actions/workflow/status/AnandChowdhary/calendar-slots/release.yml?branch=master&label=GitHub%20CI&logo=github)](https://github.com/AnandChowdhary/calendar-slots/actions/workflows/release.yml)
 [![Travis CI](https://img.shields.io/travis/AnandChowdhary/calendar-slots?label=Travis%20CI&logo=travis%20ci&logoColor=%23fff)](https://travis-ci.org/AnandChowdhary/calendar-slots)
@@ -66,6 +66,7 @@ Each `Slot` has two `Date` objects, `start` and `end`. The `from` and `to` prope
 | `padding`           | number                     | Time (min) between events         |
 | `slotFilter`        | (slot: Slot) => boolean    | Custom filter for available slots |
 | `url`.              | string                     | iCalendar URL                     |
+| `file`              | string                     | Local `.ics` file path            |
 | `calendarId`        | string                     | Specific Google Calender ID       |
 | `auth`              | Google API OAuth2 client   | API client to use                 |
 | `user.accessToken`  | string                     | User's access token               |
@@ -84,6 +85,16 @@ const slots = await findSlots({
   from: new Date(),
   to: nextWeek,
   url: "webcal://your-example-url.ics"
+});
+```
+
+For an exported local `.ics` file, use the `file` option:
+
+```ts
+const slots = await findSlots({
+  from: new Date(),
+  to: nextWeek,
+  file: "./calendar.ics",
 });
 ```
 
