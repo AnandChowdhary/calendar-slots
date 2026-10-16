@@ -83,4 +83,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm run semantic-release
+        run: |
+          # Probe npm authentication before releasing: if the NPM_TOKEN secret is
+          # expired or invalid, fall back to GitHub-only publishing instead of
+          # failing the whole release. With NPM_TOKEN unset, .releaserc.js sets
+          # npmPublish to false, so @semantic-release/npm skips npm publishing
+          # while the GitHub release still ships. Publishing to npm resumes
+          # automatically once the token is valid again.
+          if ! npm whoami --registry=https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "::warning::NPM_TOKEN is invalid or expired - creating GitHub release only (npm publish skipped)"
+            unset NPM_TOKEN
+          fi
+          npm run semantic-release
